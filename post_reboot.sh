@@ -7,14 +7,15 @@ sudo pacman -Rcns 1password-beta 1password-cli
 
 yay -S --noconfirm --needed \
 	pkgfile \
-  pika-backup \
-  bind \
+	pika-backup \
+	bind \
 	uv \
 	bind \
 	os-prober \
 	gvfs-smb \
 	ntfs-3g \
-  timeshift timeshift-autosnap \
+	xorg-xhost \  # this is needed to be able to open timeshift GUI
+ 	timeshift timeshift-autosnap \
 	bitwarden bitwarden-cli
 
  # Install new grub theme
