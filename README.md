@@ -1,2 +1,7 @@
 # archinstall2025
-Notes on installation of Arch Linux + Omarchy
+
+August 2025
+
+# Arch Install with BTRFS - Encryption - ZRAM - Timeshift + Omarchy
+
+
