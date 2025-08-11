@@ -16,6 +16,7 @@ timedatectl set-ntp true
 # If using a new (blank) drive, create a boot partition which is at least 1G
 
 # Format the main partition
+# REMEMBER THE PASSWORD!!!
 cryptsetup luksFormat /dev/nvme0n1p5
 
 # Open it as "main"  (main is the parition name and will be used in the following steps)
@@ -60,39 +61,77 @@ cat /mnt/etc/fstab
 arch-chroot /mnt
 
 
-ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
-pacman -Suy neovim
-nvim /etc/locale.gen
+
+# optional: set the computer clock to the new time
+# hwclock --systohc
+
+# Set locale
+sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
 locale-gen
 echo "LANG=en_US.UTF-8" >> /etc/locale.conf
+localectl --no-ask-password set-locale LANG="en_US.UTF-8" LC_TIME="en_US.UTF-8"
+
+# Set timezone
+ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
+timedatectl --no-ask-password set-timezone America/New_York
+timedatectl --no-ask-password set-ntp 1
+
+# Set hostname
 echo "t480arch" >> /etc/hostname
-hostname
-host
+
+# Set root password
 passwd
+
+# Create first user (superuser) and add them to SUDO
 useradd -m -g users -G wheel bob
 passwd bob
-mkdir -m 755 /etc/sudoers.d
+mkdir -p -m 755 /etc/sudoers.d
 echo "bob ALL=(ALL) ALL" >> /etc/sudoers.d/bob
 chmod 0440 /etc/sudoers.d/bob
-pacman -S sudo
+
+# Setup reflector so we can optimise downloads and installation
 pacman -S reflector
 sudo reflector --country Canada --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
-pacman -Syu base-devel linux linux-headers linux-firmware btrfs-progs grub efibootmgr mtools networkmanager openssh git acpid grub-btrfs
-pacman -S man-db man-pages bluez bluez-utils pipewire pipewire-pulse pipewire-jack sof-firmware ttf-firacode-nerd alacritty firefox
+
+# install the packages needed for the grub installation - most of the app/packages will be installed later by the Omarchy script
+
+pacman -Syu base-devel linux linux-headers linux-firmware btrfs-progs grub efibootmgr mtools networkmanager network-manager-applet sudo openssh git acpid grub-btrfs wget neovim
+pacman -S intel-ucode
+# pacman -S man-db man-pages bluez bluez-utils pipewire pipewire-pulse pipewire-jack sof-firmware ttf-firacode-nerd alacritty firefox
+
+# Time to edit the mkinitcpi configuration so we can boot into the new encrypted system
+# Open the mkinitcpio.conf file and look for the HOOKS line
+# insert "encrypt" before filesystems
+# insert "btrfs" to the MODULES list
+# if desktop: add usbhid and atkbd to MODULES so that external keyboard will be available at boot in order to enter the decrypt password
 nvim /etc/mkinitcpio.conf
+mkinitcpio -p linux
+# if we get an error (can't write to /boot), we need to remount boot as read/write and rerun the command
 mount -n -o remount,rw /boot
+mkinitcpio -p linux
+
 # at this point I realized that the Windows created boot partition is only 100MB.  The partition was used at over 90% not leaving enough space for
 # the mkinitcpio to perform its job.
 # I deleted the fallback images as well as all the extra languages installed by MS
 # rm /boot/EFI/Microsoft/Boot/xx-XX
-rm /boot/initramfs-linux-fallback.img
-mkinitcpio -p linux
-pacman -S intel-ucode
-nvim /etc/mkinitcpio.conf
+# rm /boot/initramfs-linux-fallback.img
+#mkinitcpio -p linux
+#nvim /etc/mkinitcpio.conf
+
+# Install grub
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
+
+# Get the UUID of the boot disk
+blkid
+# Insert it in the grub config and regenerate
+# the GRUB_CMDLINE_LINUX_DEFAULT should now have the argument
+#"loglevel=3 quiet cryptdevice=UUID=xxxxxxxxxxxx:main root=/dev/mapper/main"
+# note the ":main" text after the UUID
 nvim /etc/default/grub
 grub-mkconfig -o /boot/grub/grub.cfg
+
+
 systemctl enable NetworkManager
 systemctl enable bluetooth
 systemctl enable sshd
