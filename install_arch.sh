@@ -26,7 +26,7 @@ echo "bob ALL=(ALL) ALL" >> /etc/sudoers.d/bob
 chmod 0440 /etc/sudoers.d/bob
 pacman -S sudo
 pacman -S reflector
-reflector -c Canada -a 12 --sort rate --save /etc/pacman.d/mirrorlist
+sudo reflector --country Canada --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
 pacman -Syu base-devel linux linux-headers linux-firmware btrfs-progs grub efibootmgr mtools networkmanager openssh git acpid grub-btrfs
 pacman -S man-db man-pages bluez bluez-utils pipewire pipewire-pulse pipewire-jack sof-firmware ttf-firacode-nerd alacritty firefox
 nvim /etc/mkinitcpio.conf
