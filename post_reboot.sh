@@ -1,3 +1,24 @@
+# Install zram
+sudo pacman -Syu zram-generator
+
+# create file at /etc/systemd/zram-generator.conf
+[zram0]
+zram-size = ram / 2
+compression-algorithm = zstd
+swap-priority = 100
+fs-type = swap
+
+# Install Timeshift
+yay -S timeshift timeshift-autosnap
+sudo timeshift --list-devices
+# Create a first snapshot
+sudo timeshift --create --comments "[xx] Initial Snapshot" --tags D
+# change ExecStart=/usr/bin/grub-btrfsd --syslog /.snapshots for ExecStart=/usr/bin/grub-btrfsd --syslog -t
+sudo systemctl edit --full grub-btrfsd
+
+# regenerate the grub config so that the snapshot are visible on boot
+sudo grub-mkconfig -o /boot/grub/grub.cfg
+
 # Install Omarchy
 sudo pacman -S wget
 wget -qO- https://omarchy.org/install | bash
