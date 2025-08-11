@@ -3,10 +3,60 @@
 # Boot partition will be shared with Windows and is at nvme0n1p1
 # Target partition for Arch is nvme0n1p5
 #
+
+# BOOT ARCH from ISO
+# The default locale and console keyboard layout are fine
+# I use Ethernet but if needed use iwctl to connect to a WiFi network
+
+timedatectl set-timezone America/New_York
+timedatectl set-ntp true
+
+# Partitioning of the target disk
+# See my setup above
+# If using a new (blank) drive, create a boot partition which is at least 1G
+
+# Format the main partition
+cryptsetup luksFormat /dev/nvme0n1p5
+
+# Open it as "main"  (main is the parition name and will be used in the following steps)
 cryptsetup luksOpen /dev/nvme0n1p5 main
+
+# Format the main partition with btrfs
+# note here we reuse the main "name" from the luksOpen statement
+mkfs.btrfs /dev/mapper/main
+
+# mount the paritiions
+mount /dev/mapper/main /mnt
+cd /mnt
+btrfs subvolume create @
+btrfs subvolume create @home
+
+# the next subvolumes are created in some examples of use
+# btrfs subvolume create @log
+# btrfs subvolume create @pkg
+
+cd -
+umount /mnt
+
+# now that the btrfs subvolume have been created, it's time to mount them
+mkdir /mnt/home
 mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@ /dev/mapper/main /mnt
 mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@home /dev/mapper/main /mnt/home
-mount /dev/nvme0n1p1 /mnt/boot
+
+# if using a new drive, format the EFI partition
+# mkfs.fat -F32 /dev/nvme0n1p1
+# mkdir /mnt/boot
+# mount /dev/nvme0n1p1 /mnt/boot
+
+# Install the base packages
+pacstrap -K /mnt base linux linux-firmware
+
+# Generate the filesystem table
+genfstab -U -p /mnt >> /mnt/etc/fstab
+# check it
+cat /mnt/etc/fstab
+
+# Change into the new system root
 arch-chroot /mnt
 
 
