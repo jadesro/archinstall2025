@@ -58,7 +58,7 @@ partprobe ${DISK} # reread partition table to ensure it is correct
 # Format the main partition
 # REMEMBER THE PASSWORD!!!
 export CRYPT=/dev/vda3
-echo -n "$PASSWORD" | cryptsetup luksFormat ${CRYPT} -
+echo -n "$PASSWORD" | cryptsetup -v luksFormat ${CRYPT} -
 
 # Open it as "main"  (main is the parition name and will be used in the following steps)
 echo -n "$PASSWORD" | cryptsetup luksOpen ${CRYPT} main -
