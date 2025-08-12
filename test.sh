@@ -187,6 +187,13 @@ pacman --noconfirm -S base-devel linux linux-headers linux-firmware btrfs-progs 
 pacman --noconfirm -S intel-ucode
 # pacman -S man-db man-pages bluez bluez-utils pipewire pipewire-pulse pipewire-jack sof-firmware ttf-firacode-nerd alacritty firefox
 
+# Install grub if EFI configuration
+if [[ -d "/sys/firmware/efi" ]]; then
+   # grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+   grub-install --efi-directory=/boot ${DISK}
+fi
+#
+
 # Time to edit the mkinitcpi configuration so we can boot into the new encrypted system
 # Open the mkinitcpio.conf file and look for the HOOKS line
 # insert "encrypt" before filesystems
@@ -214,14 +221,6 @@ grub-mkconfig -o /boot/grub/grub.cfg
 # rm /boot/initramfs-linux-fallback.img
 #mkinitcpio -p linux
 #nvim /etc/mkinitcpio.conf
-
-# Install or reinstall grub depending on EFI or BIOS configuration
-if [[ -d "/sys/firmware/efi" ]]; then
-   grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
-else
-   grub-install --efi-directory=/boot ${DISK}
-fi
-#
 
 
 systemctl enable NetworkManager
