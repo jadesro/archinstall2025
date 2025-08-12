@@ -4,8 +4,7 @@ set -x
 
 # BOOT ARCH from ISO
 
-echo "++++++++++ ARCH INSTALLER +++++++++++"
-echo "\n"
+echo "++++++++++ ARCH INSTALLER +++++++++++\n\n"
 
 read -r -p "Username: " username
 export USERNAME=$username
