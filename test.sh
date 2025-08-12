@@ -3,6 +3,19 @@
 
 # BOOT ARCH from ISO
 
+read -r -p "Username: " username
+export USERNAME=$username
+
+read -rs -p "Password: " password1
+echo -ne "\n"
+read -rs -p "Reenter password: " password2
+echo -ne "\n"
+if [[ "$password1"  != "$password2" ]]; then
+   echo -ne "Error - No match.  Start over"
+   exit
+fi
+export PASSWORD=$password1
+
 timedatectl set-timezone America/New_York
 timedatectl set-ntp true
 
@@ -39,10 +52,10 @@ partprobe ${DISK} # reread partition table to ensure it is correct
 # Format the main partition
 # REMEMBER THE PASSWORD!!!
 export CRYPT=/dev/vda3
-cryptsetup luksFormat ${CRYPT}
+echo -n "$PASSWORD" | cryptsetup luksFormat ${CRYPT} -
 
 # Open it as "main"  (main is the parition name and will be used in the following steps)
-cryptsetup luksOpen ${CRYPT} main
+echo -n "$PASSWORD" | cryptsetup luksOpen ${CRYPT} main -
 
 # Format the main partition with btrfs
 # note here we reuse the main "name" from the luksOpen statement
@@ -83,7 +96,7 @@ blkid -s UUID -o value "${CRYPT}"
 export ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
 
 # Change into the new system root
-arch-chroot /mnt
+arch-chroot /mnt /bin/bash -c "KEYMAP='us' /bin/bash" <<EOF
 
 
 
@@ -102,7 +115,7 @@ timedatectl --no-ask-password set-timezone America/New_York
 timedatectl --no-ask-password set-ntp 1
 
 # Set hostname
-echo "t480arch" >> /etc/hostname
+echo "omarch" >> /etc/hostname
 
 # Set root password
 passwd
@@ -167,3 +180,4 @@ systemctl enable reflector.timer
 systemctl enable acpid
 
 # reboot - after which we should have a minimally installed Arch Linux working system.
+EOF
