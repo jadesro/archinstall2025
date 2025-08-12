@@ -21,6 +21,7 @@ echo "++++++++++ ARCH INSTALLER +++++++++++\n\n"
 
 export USERNAME="jacques"
 export PASSWORD="TestTest"
+export MACHINE="omar"
 
 timedatectl set-timezone America/New_York
 timedatectl set-ntp true
@@ -125,17 +126,20 @@ timedatectl --no-ask-password set-timezone America/New_York
 timedatectl --no-ask-password set-ntp 1
 
 # Set hostname
-echo "omarch" >> /etc/hostname
+echo $MACHINE >> /etc/hostname
 
 # Set root password
 echo "root:$PASSWORD" | chpasswd
 
 # Create first user (superuser) and add them to SUDO
+echo "Creating User $USERNAME"
 useradd -m -g users -G wheel -s /bin/bash $USERNAME
 echo "$USERNAME:$PASSWORD" | chpasswd
 mkdir -p -m 755 /etc/sudoers.d
 echo "$USERNAME ALL=(ALL) ALL" >> /etc/sudoers.d/$USERNAME
 chmod 0440 /etc/sudoers.d/$USERNAME
+cat /etc/passwd
+sleep 5
 
 # Setup reflector so we can optimise downloads and installation
 pacman -Syu
