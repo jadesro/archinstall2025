@@ -6,18 +6,21 @@ set -x
 
 echo "++++++++++ ARCH INSTALLER +++++++++++\n\n"
 
-read -p "Username: " username
-export USERNAME=$username
+#read -p "Username: " username
+#export USERNAME=$username
 
-read -sp "Password: " password1
-echo -ne "\n"
-read -sp "Reenter password: " password2
-echo -ne "\n"
-if [[ "$password1"  != "$password2" ]]; then
-   echo -ne "Error - No match.  Start over"
-   exit
-fi
-export PASSWORD=$password1
+#read -sp "Password: " password1
+#echo -ne "\n"
+#read -sp "Reenter password: " password2
+#echo -ne "\n"
+#if [[ "$password1"  != "$password2" ]]; then
+#   echo -ne "Error - No match.  Start over"
+#   exit
+#fi
+#export PASSWORD=$password1
+
+export USERNAME="jacques"
+export PASSWORD="TestTest"
 
 timedatectl set-timezone America/New_York
 timedatectl set-ntp true
