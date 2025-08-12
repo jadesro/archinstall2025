@@ -101,6 +101,10 @@ cat /mnt/etc/fstab
 blkid -s UUID -o value "${CRYPT}"
 export ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
 
+if [[ ! -d "/sys/firmware/efi" ]]; then
+    grub-install --boot-directory=/mnt/boot "${DISK}"
+fi
+
 # Change into the new system root
 arch-chroot /mnt /bin/bash -c "KEYMAP='us' /bin/bash" <<EOF
 
