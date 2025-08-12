@@ -119,7 +119,12 @@ mkdir /mnt/boot
 mount ${DISK}2 /mnt/boot
 
 # Install the base packages
-pacstrap -K /mnt base linux linux-firmware
+# there is a difference between BIOS and EFI mode
+if [[ ! -d "/sys/firmware/efi" ]]; then
+    pacstrap -K /mnt base base-devel linux-lts linux-firmware --noconfirm --needed
+else
+    pacstrap -K /mnt base base-devel linux-lts linux-firmware efibootmgr --noconfirm --needed
+fi
 
 # Generate the filesystem table
 genfstab -U -p /mnt >> /mnt/etc/fstab
