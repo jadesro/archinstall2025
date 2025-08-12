@@ -65,7 +65,7 @@ echo -n "$PASSWORD" | cryptsetup luksOpen ${CRYPT} main -
 
 # Format the main partition with btrfs
 # note here we reuse the main "name" from the luksOpen statement
-mkfs.btrfs -L ROOT /dev/mapper/main
+mkfs.btrfs -f -L ROOT /dev/mapper/main
 
 # mount the paritiions
 mount /dev/mapper/main /mnt
@@ -128,22 +128,23 @@ timedatectl --no-ask-password set-ntp 1
 echo "omarch" >> /etc/hostname
 
 # Set root password
-passwd
+echo "root:$PASSWORD" | chpasswd
 
 # Create first user (superuser) and add them to SUDO
-useradd -m -g users -G wheel bob
-passwd bob
+useradd -m -g users -G wheel -s /bin/bash $USERNAME
+echo "$USERNAME:$PASSWORD" | chpasswd
 mkdir -p -m 755 /etc/sudoers.d
-echo "bob ALL=(ALL) ALL" >> /etc/sudoers.d/bob
-chmod 0440 /etc/sudoers.d/bob
+echo "$USERNAME ALL=(ALL) ALL" >> /etc/sudoers.d/$USERNAME
+chmod 0440 /etc/sudoers.d/$USERNAME
 
 # Setup reflector so we can optimise downloads and installation
+pacman -Syu
 pacman --noconfirm -S reflector
 reflector --country Canada --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
 
 # install the packages needed for the grub installation - most of the app/packages will be installed later by the Omarchy script
 
-pacman --noconfirm -Syu base-devel linux linux-headers linux-firmware btrfs-progs grub mtools networkmanager network-manager-applet sudo openssh git acpid grub-btrfs wget neovim
+pacman --noconfirm -S base-devel linux linux-headers linux-firmware btrfs-progs grub mtools networkmanager network-manager-applet sudo openssh git acpid grub-btrfs wget neovim
 pacman --noconfirm -S intel-ucode
 # pacman -S man-db man-pages bluez bluez-utils pipewire pipewire-pulse pipewire-jack sof-firmware ttf-firacode-nerd alacritty firefox
 
@@ -154,10 +155,18 @@ pacman --noconfirm -S intel-ucode
 # if desktop: add usbhid and atkbd to MODULES so that external keyboard will be available at boot in order to enter the decrypt password
 #nvim /etc/mkinitcpio.conf
 sed -i 's/filesystems/encrypt filesystems/g' /etc/mkinitcpio.conf
+sed -i 's/MODULES=()/MODULES=(btrfs usbhid xhci_hcd)/g' /etc/mkinitcpio.conf
+# Insert it in the grub config and regenerate
+# the GRUB_CMDLINE_LINUX_DEFAULT should now have the argument
+#"loglevel=3 quiet cryptdevice=UUID=xxxxxxxxxxxx:main root=/dev/mapper/main"
+# note the ":main" text after the UUID
+sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"%GRUB_CMDLINE_LINUX_DEFAULT=\"cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main root=/dev/mapper/main %g" /etc/default/grub
 mkinitcpio -p linux
 # if we get an error (can't write to /boot), we need to remount boot as read/write and rerun the command
 #mount -n -o remount,rw /boot
 #mkinitcpio -p linux
+grub-mkconfig -o /boot/grub/grub.cfg
+
 
 # at this point I realized that the Windows created boot partition is only 100MB.  The partition was used at over 90% not leaving enough space for
 # the mkinitcpio to perform its job.
@@ -168,26 +177,20 @@ mkinitcpio -p linux
 #nvim /etc/mkinitcpio.conf
 
 # Install grub
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
-grub-mkconfig -o /boot/grub/grub.cfg
-
-# Get the UUID of the boot disk
-blkid -s UUID -o value /dev/nvme0n1p5
-# Insert it in the grub config and regenerate
-# the GRUB_CMDLINE_LINUX_DEFAULT should now have the argument
-#"loglevel=3 quiet cryptdevice=UUID=xxxxxxxxxxxx:main root=/dev/mapper/main"
-# note the ":main" text after the UUID
-sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"%GRUB_CMDLINE_LINUX_DEFAULT=\"cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main root=/dev/mapper/main %g" /etc/default/grub
-# nvim /etc/default/grub
-grub-mkconfig -o /boot/grub/grub.cfg
+if [[ -d "/sys/firmware/efi" ]]; then
+   grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+else
+   grub-install --efi-directory=/boot ${DISK}
+fi
+#
 
 
 systemctl enable NetworkManager
-systemctl enable bluetooth
+# systemctl enable bluetooth
 systemctl enable sshd
 systemctl enable reflector
 systemctl enable reflector.timer
-systemctl enable acpid
+# systemctl enable acpid
 
 # reboot - after which we should have a minimally installed Arch Linux working system.
 EOF
