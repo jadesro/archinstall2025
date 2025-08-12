@@ -6,12 +6,12 @@ set -x
 
 echo "++++++++++ ARCH INSTALLER +++++++++++\n\n"
 
-read -r -p "Username: " username
+read -p "Username: " username
 export USERNAME=$username
 
-read -rs -p "Password: " password1
+read -sp "Password: " password1
 echo -ne "\n"
-read -rs -p "Reenter password: " password2
+read -sp "Reenter password: " password2
 echo -ne "\n"
 if [[ "$password1"  != "$password2" ]]; then
    echo -ne "Error - No match.  Start over"
