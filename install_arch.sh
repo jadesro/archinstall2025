@@ -1,5 +1,5 @@
 # Example
-# Install ARCH on the nvme disk while keeping the existing Windows partitions intact
+# Install ARCH on the nvme0n1 disk while keeping the existing Windows partitions intact
 # Boot partition will be shared with Windows and is at nvme0n1p1
 # Target partition for Arch is nvme0n1p5
 #
@@ -8,12 +8,39 @@
 # The default locale and console keyboard layout are fine
 # I use Ethernet but if needed use iwctl to connect to a WiFi network
 
+pacman -Sy --noconfirm pacman-contrib terminus-font
+# does not work: setfont ter-v22b
 timedatectl set-timezone America/New_York
 timedatectl set-ntp true
+
+# Format new disk
+# umount -A --recursive /mnt # make sure everything is unmounted before we start
+# disk prep
+# where DISK is /dev/vda for instance (which is a disk on a QEMU VM)
+export DISK=/dev/vda
+sgdisk -Z ${DISK} # zap all on disk
+sgdisk -a 2048 -o ${DISK} # new gpt disk 2048 alignment
+
+# create partitions
+# sgdisk -n 1::+1M --typecode=1:ef02 --change-name=1:'BIOS' ${DISK} # partition 1 (BIOS Boot Partition)
+# sgdisk -n 2::+300M --typecode=2:ef00 --change-name=2:'EFI' ${DISK} # partition 2 (UEFI Boot Partition)
+# sgdisk -n 3::-0 --typecode=3:8300 --change-name=3:'ROOT' ${DISK} # partition 3 (Root), default start, remaining
+
+sgdisk -n 1::+1G --typecode=1:ef00 --change-name=1:'BOOT' ${DISK} # partition 1 (BIOS Boot Partition)
+sgdisk -n 2::-0 --typecode=2:8300 --change-name=2:'ROOT' ${DISK} # partition 3 (Root), default start, remaining
+
+
+if [[ ! -d "/sys/firmware/efi" ]]; then # Checking for bios system
+   # set bit 2 attribute on partition 1 to 2 ==> legacy BIOS bootable
+   sgdisk -A 1:set:2 ${DISK}
+fi
+partprobe ${DISK} # reread partition table to ensure it is correct
 
 # Partitioning of the target disk
 # See my setup above
 # If using a new (blank) drive, create a boot partition which is at least 1G
+# if a new disk partition plan is required, use gptdisk 
+# gptdisk has two modes: gdisk (GUI) and sgdisk (CLI)
 
 # Format the main partition
 # REMEMBER THE PASSWORD!!!
@@ -24,28 +51,27 @@ cryptsetup luksOpen /dev/nvme0n1p5 main
 
 # Format the main partition with btrfs
 # note here we reuse the main "name" from the luksOpen statement
-mkfs.btrfs /dev/mapper/main
+mkfs.btrfs -L ROOT /dev/mapper/main
 
 # mount the paritiions
 mount /dev/mapper/main /mnt
-cd /mnt
-btrfs subvolume create @
-btrfs subvolume create @home
+btrfs subvolume create /mnt/@
+btrfs subvolume create /mnt/@home
+btrfs subvolume create /mnt/@log
+btrfs subvolume create /mnt/@pkg
 
-# the next subvolumes are created in some examples of use
-# btrfs subvolume create @log
-# btrfs subvolume create @pkg
-
-cd -
 umount /mnt
 
 # now that the btrfs subvolume have been created, it's time to mount them
-mkdir /mnt/home
 mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@ /dev/mapper/main /mnt
+
+mkdir -p /mnt/{home,var/log,var/cache/pacman/pkg}
 mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@home /dev/mapper/main /mnt/home
+mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@log  /dev/mapper/main /mnt/var/log
+mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@pkg  /dev/mapper/main /mnt/var/cache/pacman/pkg
 
 # if using a new drive, format the EFI partition
-# mkfs.fat -F32 /dev/nvme0n1p1
+# mkfs.vfat -F32 -n "EFI" /dev/nvme0n1p1
 # mkdir /mnt/boot
 # mount /dev/nvme0n1p1 /mnt/boot
 
@@ -56,6 +82,9 @@ pacstrap -K /mnt base linux linux-firmware
 genfstab -U -p /mnt >> /mnt/etc/fstab
 # check it
 cat /mnt/etc/fstab
+
+# Remember the UUID of the root partition:
+blkid -s PARTUUID -o value /dev/nvme0n1p5
 
 # Change into the new system root
 arch-chroot /mnt
@@ -90,13 +119,13 @@ echo "bob ALL=(ALL) ALL" >> /etc/sudoers.d/bob
 chmod 0440 /etc/sudoers.d/bob
 
 # Setup reflector so we can optimise downloads and installation
-pacman -S reflector
-sudo reflector --country Canada --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
+pacman --noconfirm -S reflector
+reflector --country Canada --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
 
 # install the packages needed for the grub installation - most of the app/packages will be installed later by the Omarchy script
 
-pacman -Syu base-devel linux linux-headers linux-firmware btrfs-progs grub efibootmgr mtools networkmanager network-manager-applet sudo openssh git acpid grub-btrfs wget neovim
-pacman -S intel-ucode
+pacman --noconfirm -Syu base-devel linux linux-headers linux-firmware btrfs-progs grub efibootmgr mtools networkmanager network-manager-applet sudo openssh git acpid grub-btrfs wget neovim
+pacman --noconfirm -S intel-ucode
 # pacman -S man-db man-pages bluez bluez-utils pipewire pipewire-pulse pipewire-jack sof-firmware ttf-firacode-nerd alacritty firefox
 
 # Time to edit the mkinitcpi configuration so we can boot into the new encrypted system
@@ -124,6 +153,7 @@ grub-mkconfig -o /boot/grub/grub.cfg
 
 # Get the UUID of the boot disk
 blkid
+blkid -s UUID -o value /dev/nvme0n1p5
 # Insert it in the grub config and regenerate
 # the GRUB_CMDLINE_LINUX_DEFAULT should now have the argument
 #"loglevel=3 quiet cryptdevice=UUID=xxxxxxxxxxxx:main root=/dev/mapper/main"
