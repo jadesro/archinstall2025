@@ -19,7 +19,7 @@ echo "++++++++++ ARCH INSTALLER +++++++++++\n\n"
 #fi
 #export PASSWORD=$password1
 
-export USERNAME="jacques"
+export MYUSERNAME="jacques"
 export PASSWORD="TestTest"
 export MACHINE="omar"
 
@@ -132,14 +132,16 @@ echo $MACHINE >> /etc/hostname
 echo "root:$PASSWORD" | chpasswd
 
 # Create first user (superuser) and add them to SUDO
-echo "Creating User $USERNAME"
-useradd -m -g users -G wheel -s /bin/bash $USERNAME
-echo "$USERNAME:$PASSWORD" | chpasswd
+echo "########################################################################"
+echo "Creating User $MYUSERNAME"
+useradd -m -g users -G wheel -s /bin/bash $MYUSERNAME
+echo "$MYUSERNAME:$PASSWORD" | chpasswd
 mkdir -p -m 755 /etc/sudoers.d
-echo "$USERNAME ALL=(ALL) ALL" >> /etc/sudoers.d/$USERNAME
-chmod 0440 /etc/sudoers.d/$USERNAME
+echo "$MYUSERNAME ALL=(ALL) ALL" >> /etc/sudoers.d/$MYUSERNAME
+chmod 0440 /etc/sudoers.d/$MYUSERNAME
 cat /etc/passwd
-sleep 5
+sleep 10
+echo "########################################################################"
 
 # Setup reflector so we can optimise downloads and installation
 pacman -Syu
