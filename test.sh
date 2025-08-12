@@ -1,7 +1,11 @@
 # Install Arch with LUKS on a QEMU VM
 #
+set -x
 
 # BOOT ARCH from ISO
+
+echo "++++++++++ ARCH INSTALLER +++++++++++"
+echo "\n"
 
 read -r -p "Username: " username
 export USERNAME=$username
