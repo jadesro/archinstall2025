@@ -1,5 +1,7 @@
 # Test the read command
 set -x
 echo "Tesing read ability"
-read -p "Enter your name: " name
-echo $name
+echo "\n"
+echo "Enter your name:"
+read name
+echo "$name"
