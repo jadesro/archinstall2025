@@ -71,8 +71,9 @@ sgdisk -n 2::+1GiB --typecode=2:ef00 --change-name=2:'EFI'  ${DISK} # partition 
 sgdisk -n 3::-0    --typecode=3:8300 --change-name=3:'ROOT' ${DISK} # partition 3 (Root), default start, remaining
 
 
-if [[ ! -d "/sys/firmware/efi" ]]; then # Checking for bios system
+if [[ ! -d "/sys/firmware/efi" ]]; then # BIOS or EFI?
    # set bit 2 attribute on partition 1 to 2 ==> legacy BIOS bootable
+   # if EFI this is not required
    sgdisk -A 1:set:2 ${DISK}
 fi
 partprobe ${DISK} # reread partition table to ensure it is correct
@@ -209,7 +210,7 @@ grub-mkconfig -o /boot/grub/grub.cfg
 #mkinitcpio -p linux
 #nvim /etc/mkinitcpio.conf
 
-# Install grub
+# Install or reinstall grub depending on EFI or BIOS configuration
 if [[ -d "/sys/firmware/efi" ]]; then
    grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 else
