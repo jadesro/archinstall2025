@@ -1,27 +1,31 @@
+#!/usr/bin/zsh
 # Install Arch with LUKS on a QEMU VM
 #
-set -x
+#set -x
 
 # BOOT ARCH from ISO
 
 echo "++++++++++ ARCH INSTALLER +++++++++++\n\n"
 
-#read -p "Username: " username
-#export USERNAME=$username
+read "?Username: " myusername
+export MYUSERNAME=$myusername
 
-#read -sp "Password: " password1
-#echo -ne "\n"
-#read -sp "Reenter password: " password2
-#echo -ne "\n"
-#if [[ "$password1"  != "$password2" ]]; then
-#   echo -ne "Error - No match.  Start over"
-#   exit
-#fi
-#export PASSWORD=$password1
+read -s "?Password: " password1
+echo -ne "\n"
+read -s "?Reenter password: " password2
+echo -ne "\n"
+if [[ "$password1"  != "$password2" ]]; then
+   echo -ne "Error - No match.  Start over"
+   exit
+fi
+export PASSWORD=$password1
 
-export MYUSERNAME="jacques"
-export PASSWORD="TestTest"
-export MACHINE="omar"
+read "?Machine name: " machine
+export MACHINE=$machine
+
+#export MYUSERNAME="jacques"
+#export PASSWORD="TestTest"
+#export MACHINE="omar"
 
 timedatectl set-timezone America/New_York
 timedatectl set-ntp true
