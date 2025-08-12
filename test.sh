@@ -85,9 +85,9 @@ mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@log  /de
 mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@pkg  /dev/mapper/main /mnt/var/cache/pacman/pkg
 
 # if using a new drive, format the EFI partition
-mkfs.vfat -F32 -n "EFI" ${DISK}1
+mkfs.vfat -F32 -n "EFI" ${DISK}2
 mkdir /mnt/boot
-mount ${DISK}1 /mnt/boot
+mount ${DISK}2 /mnt/boot
 
 # Install the base packages
 pacstrap -K /mnt base linux linux-firmware
