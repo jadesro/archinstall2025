@@ -27,6 +27,8 @@ export MACHINE=$machine
 #export PASSWORD="TestTest"
 #export MACHINE="omar"
 
+# it is important to setup the time correctly because pacman/pacstrap need
+# a correct time stamp to create the keystore
 timedatectl set-timezone America/New_York
 timedatectl set-ntp true
 
