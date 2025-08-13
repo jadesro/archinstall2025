@@ -123,6 +123,7 @@ cat /mnt/etc/fstab
 
 # Remember the UUID of the root partition:
 # blkid -s UUID -o value "${CRYPT}"
+export ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
  
 
 #if [[ ! -d "/sys/firmware/efi" ]]; then
@@ -133,6 +134,12 @@ cat /mnt/etc/fstab
 arch-chroot /mnt /bin/bash -c "KEYMAP='us' /bin/bash" <<EOF
 
 
+echo "################################"
+echo "Arch chroot started"
+echo "DISK is : " ${DISK}
+echo "User is : " ${MYUSERNAME}
+echo "Crypt is: " ${CRYPT}
+echo "UUID is : " {$ENCRYPTED_PARTITION_UUID}
 
 # optional: set the computer clock to the new time
 # hwclock --systohc
@@ -212,6 +219,8 @@ fi
 export ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
 #sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet splash cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main root=/dev/mapper/main%g" /etc/default/grub
 sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main%g" /etc/default/grub
+grep GRUB_CMDLINE_LINUX_DEFAULT /etc/default/grub
+sleep 10
 #  mkinitcpio -p linux
 # if we get an error (can't write to /boot), we need to remount boot as read/write and rerun the command
 #mount -n -o remount,rw /boot
