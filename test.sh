@@ -188,7 +188,8 @@ sleep 1
 pacman -Syu
 pacman --noconfirm --needed -S reflector rsync
 # reflector --country US --protocol http,https,rsync --download-timeout 2 -a 12 --sort rate --save /etc/pacman.d/mirrorlist
-reflector --country Canada --ipv4 --age 12 --download-timeout=3 --threads 3 --fastest 10 --sort rate --save /etc/pacman.d/mirrorlist
+# reflector --country Canada --ipv4 --age 12 --download-timeout=3 --threads 3 --fastest 10 --sort rate --save /etc/pacman.d/mirrorlist
+reflector --country Canada --ipv4 --age 48 --download-timeout=3 --threads 3 --fastest 10 --score 5 --sort rate --save /etc/pacman.d/mirrorlist
 
 # install the packages needed for the grub installation - most of the app/packages will be installed later by the Omarchy script
 
