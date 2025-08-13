@@ -3,6 +3,7 @@
 #
 # use
 # curl -OL https://raw.githubusercontent.com/jadesro/archinstall2025/refs/heads/main/test.sh
+# zsh test.sh
 #set -x
 
 # BOOT ARCH from ISO
