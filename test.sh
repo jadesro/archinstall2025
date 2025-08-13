@@ -216,7 +216,7 @@ fi
 #"loglevel=3 quiet cryptdevice=UUID=xxxxxxxxxxxx:main root=/dev/mapper/main"
 # note the ":main" text after the UUID
 
-export ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
+# parexport ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
 #sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet splash cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main root=/dev/mapper/main%g" /etc/default/grub
 sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main%g" /etc/default/grub
 grep GRUB_CMDLINE_LINUX_DEFAULT /etc/default/grub
