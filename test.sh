@@ -86,12 +86,15 @@ btrfs subvolume create /mnt/@pkg
 umount /mnt
 
 # now that the btrfs subvolume have been created, it's time to mount them
-mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@ /dev/mapper/main /mnt
+export MOUNTOPTIONS="noatime,compress=zstd,space_cache=v2,discard=async"
+# If ssd use:
+# export MOUNTOPTIONS="noatime,ssd,compress=zstd,space_cache=v2,discard=async"
+mount -o ${MOUNTOPTIONS},subvol=@ /dev/mapper/main /mnt
 
 mkdir -p /mnt/{home,var/log,var/cache/pacman/pkg}
-mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@home /dev/mapper/main /mnt/home
-mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@log  /dev/mapper/main /mnt/var/log
-mount -o noatime,ssd,compress=zstd,space_cache=v2,discard=async,subvol=@pkg  /dev/mapper/main /mnt/var/cache/pacman/pkg
+mount -o ${MOUNTOPTIONS},subvol=@home /dev/mapper/main /mnt/home
+mount -o ${MOUNTOPTIONS},subvol=@log  /dev/mapper/main /mnt/var/log
+mount -o ${MOUNTOPTIONS},subvol=@pkg  /dev/mapper/main /mnt/var/cache/pacman/pkg
 
 # if using a new drive, format the EFI partition
 mkfs.vfat -F32 -n "EFI" ${DISK}2
