@@ -211,7 +211,7 @@ fi
 
 export ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
 #sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet splash cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main root=/dev/mapper/main%g" /etc/default/grub
-sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet splash cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main %g" /etc/default/grub
+sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main%g" /etc/default/grub
 #  mkinitcpio -p linux
 # if we get an error (can't write to /boot), we need to remount boot as read/write and rerun the command
 #mount -n -o remount,rw /boot
