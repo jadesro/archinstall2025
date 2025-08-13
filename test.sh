@@ -97,16 +97,18 @@ mount -o ${MOUNTOPTIONS},subvol=@log  /dev/mapper/main /mnt/var/log
 mount -o ${MOUNTOPTIONS},subvol=@pkg  /dev/mapper/main /mnt/var/cache/pacman/pkg
 
 # if using a new drive, format the EFI partition
-mkfs.vfat -F32 -n "EFI" ${DISK}2
+mkfs.fat -F32 -n "EFI" ${DISK}2
 mkdir /mnt/boot
 mount ${DISK}2 /mnt/boot
 
 # Install the base packages
 # there is a difference between BIOS and EFI mode
 if [[ ! -d "/sys/firmware/efi" ]]; then
-    pacstrap -K /mnt base base-devel linux-lts linux-firmware --noconfirm --needed
+    # pacstrap -K /mnt base base-devel linux-lts linux-firmware --noconfirm --needed
+    pacstrap /mnt base
 else
-    pacstrap -K /mnt base base-devel linux-lts linux-firmware efibootmgr --noconfirm --needed
+    # pacstrap -K /mnt base base-devel linux-lts linux-firmware efibootmgr --noconfirm --needed
+    pacstrap /mnt base 
 fi
 
 # Generate the filesystem table
@@ -116,11 +118,11 @@ cat /mnt/etc/fstab
 
 # Remember the UUID of the root partition:
 # blkid -s UUID -o value "${CRYPT}"
-export ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
+ 
 
-if [[ ! -d "/sys/firmware/efi" ]]; then
-    grub-install --boot-directory=/mnt/boot "${DISK}"
-fi
+#if [[ ! -d "/sys/firmware/efi" ]]; then
+#    grub-install --boot-directory=/mnt/boot "${DISK}"
+#fi
 
 # Change into the new system root
 arch-chroot /mnt /bin/bash -c "KEYMAP='us' /bin/bash" <<EOF
@@ -134,6 +136,7 @@ arch-chroot /mnt /bin/bash -c "KEYMAP='us' /bin/bash" <<EOF
 sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
 locale-gen
 echo "LANG=en_US.UTF-8" >> /etc/locale.conf
+echo "KEYMAP=us" >> /etc/vconsole.conf
 localectl --no-ask-password set-locale LANG="en_US.UTF-8" LC_TIME="en_US.UTF-8"
 
 # Set timezone
@@ -142,40 +145,42 @@ timedatectl --no-ask-password set-timezone America/New_York
 timedatectl --no-ask-password set-ntp 1
 
 # Set hostname
-echo $MACHINE >> /etc/hostname
+echo $MACHINE > /etc/hostname
 
 # Set root password
 echo "root:$PASSWORD" | chpasswd
 
 # Create first user (superuser) and add them to SUDO
-echo "########################################################################"
 echo "Creating User $MYUSERNAME"
 useradd -m -g users -G wheel -s /bin/bash $MYUSERNAME
 echo "$MYUSERNAME:$PASSWORD" | chpasswd
 mkdir -p -m 755 /etc/sudoers.d
 echo "$MYUSERNAME ALL=(ALL) ALL" >> /etc/sudoers.d/$MYUSERNAME
 chmod 0440 /etc/sudoers.d/$MYUSERNAME
-cat /etc/passwd
-sleep 10
 echo "########################################################################"
+cat /etc/passwd
+echo "########################################################################"
+sleep 1
+
 
 # Setup reflector so we can optimise downloads and installation
 pacman -Syu
-pacman --noconfirm -S reflector
-reflector --country Canada --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
+pacman --noconfirm --needed -S reflector rsync
+# reflector --country US --protocol http,https,rsync --download-timeout 2 -a 12 --sort rate --save /etc/pacman.d/mirrorlist
+reflector --country Canada --ipv4 --age 12 --download-timeout=3 --threads 3 --fastest 10 --sort rate --save /etc/pacman.d/mirrorlist
 
 # install the packages needed for the grub installation - most of the app/packages will be installed later by the Omarchy script
 
-pacman --noconfirm -S base-devel linux linux-headers linux-firmware btrfs-progs grub mtools networkmanager network-manager-applet sudo openssh git acpid grub-btrfs wget neovim
-pacman --noconfirm -S intel-ucode
-# pacman -S man-db man-pages bluez bluez-utils pipewire pipewire-pulse pipewire-jack sof-firmware ttf-firacode-nerd alacritty firefox
+pacman --noconfirm -Syu base-devel linux linux-headers linux-firmware btrfs-progs grub mtools networkmanager network-manager-applet sudo openssh git acpid grub-btrfs wget
 
-# Install grub if EFI configuration
+# Install efibootmgr if EFI configuration
 if [[ -d "/sys/firmware/efi" ]]; then
-   # grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
-   grub-install --efi-directory=/boot ${DISK}
+   pacman --noconfirm efibootmgr
 fi
-#
+
+pacman --noconfirm -S intel-ucode
+# pacman --noconfirm -S amd-ucode
+pacman --noconfirm -S man-db man-pages bluez bluez-utils pipewire pipewire-pulse pipewire-jack sof-firmware ttf-firacode-nerd alacritty
 
 # Time to edit the mkinitcpi configuration so we can boot into the new encrypted system
 # Open the mkinitcpio.conf file and look for the HOOKS line
@@ -183,19 +188,34 @@ fi
 # insert "btrfs" to the MODULES list
 # if desktop: add usbhid and atkbd to MODULES so that external keyboard will be available at boot in order to enter the decrypt password
 #nvim /etc/mkinitcpio.conf
-sed -i 's/filesystems/encrypt filesystems/g' /etc/mkinitcpio.conf
-sed -i 's/MODULES=()/MODULES=(btrfs usbhid xhci_hcd)/g' /etc/mkinitcpio.conf
+sed -i 's/filesystems fsck/encrypt filesystems fsck/g' /etc/mkinitcpio.conf
+sed -i 's/MODULES=()/MODULES=(btrfs atkbd)/g' /etc/mkinitcpio.conf
+mkinitcpio -p linux
+
+# Install grub 
+if [[ -d "/sys/firmware/efi" ]]; then
+   grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+else
+   grub-install --boot-directory=/mnt/boot "${DISK}"
+fi
+
 # Insert it in the grub config and regenerate
 # the GRUB_CMDLINE_LINUX_DEFAULT should now have the argument
 #"loglevel=3 quiet cryptdevice=UUID=xxxxxxxxxxxx:main root=/dev/mapper/main"
 # note the ":main" text after the UUID
-sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"%GRUB_CMDLINE_LINUX_DEFAULT=\"cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main root=/dev/mapper/main %g" /etc/default/grub
-mkinitcpio -p linux
+sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main root=/dev/mapper/main%g" /etc/default/grub
+#  mkinitcpio -p linux
 # if we get an error (can't write to /boot), we need to remount boot as read/write and rerun the command
 #mount -n -o remount,rw /boot
 #mkinitcpio -p linux
 grub-mkconfig -o /boot/grub/grub.cfg
 
+## Install grub if EFI configuration
+#if [[ -d "/sys/firmware/efi" ]]; then
+#   # grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+#   grub-install --efi-directory=/boot ${DISK}
+#fi
+##
 
 # at this point I realized that the Windows created boot partition is only 100MB.  The partition was used at over 90% not leaving enough space for
 # the mkinitcpio to perform its job.
