@@ -32,6 +32,12 @@ export PASSWORD=$password1
 read "?Machine name: " machine
 export MACHINE=$machine
 
+echo "Pick which disk to install to:"
+lsblk -n --output TYPE,KNAME,SIZE | awk '$1=="disk"{print "/dev/"$2" | "$3}'
+read "?Disk" target_disk
+export DISK=$target_disk
+
+lsblk
 #export MYUSERNAME="jacques"
 #export PASSWORD="TestTest"
 #export MACHINE="omar"
@@ -45,7 +51,7 @@ timedatectl set-ntp true
 # umount -A --recursive /mnt # make sure everything is unmounted before we start
 # disk prep
 # where DISK is /dev/vda for instance (which is a disk on a QEMU VM)
-export DISK=/dev/vda
+# export DISK=/dev/vda
 sgdisk -Z ${DISK} # zap all on disk
 sgdisk -a 2048 -o ${DISK} # new gpt disk 2048 alignment
 
