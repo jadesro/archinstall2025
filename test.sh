@@ -112,7 +112,7 @@ genfstab -U -p /mnt >> /mnt/etc/fstab
 cat /mnt/etc/fstab
 
 # Remember the UUID of the root partition:
-blkid -s UUID -o value "${CRYPT}"
+# blkid -s UUID -o value "${CRYPT}"
 export ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
 
 if [[ ! -d "/sys/firmware/efi" ]]; then
