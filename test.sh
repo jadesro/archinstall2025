@@ -10,6 +10,9 @@
 
 # BOOT ARCH from ISO
 
+exec > >(tee -i test.log)
+exec 2>&1
+
 echo "++++++++++ ARCH INSTALLER +++++++++++\n\n"
 echo "\n\n"
 
