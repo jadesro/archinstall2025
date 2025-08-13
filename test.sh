@@ -1,6 +1,8 @@
 #!/usr/bin/zsh
 # Install Arch with LUKS on a QEMU VM
 #
+# use
+# curl -OL https://raw.githubusercontent.com/jadesro/archinstall2025/refs/heads/main/test.sh
 #set -x
 
 # BOOT ARCH from ISO
