@@ -33,12 +33,12 @@ read "?Machine name: " machine
 export MACHINE=$machine
 
 echo "Pick which disk to install to:"
-echo "lsblk:"
+echo "lsblk output"
 lsblk
 echo "Possible disks:"
 lsblk -n --output TYPE,KNAME,SIZE | awk '$1=="disk"{print "/dev/"$2" | "$3}'
 echo -ne "\n"
-read "?Disk" target_disk
+read "?Disk: " target_disk
 export DISK=$target_disk
 
 lsblk
@@ -144,10 +144,10 @@ genfstab -U -p /mnt >> /mnt/etc/fstab
 echo "++++++++++ fstab created +++++++++++\n\n"
 cat /mnt/etc/fstab
 
-
-#if [[ ! -d "/sys/firmware/efi" ]]; then
-#    grub-install --boot-directory=/mnt/boot "${DISK}"
-#fi
+echo "+++++++++ install grub if in BIOS mode ++++++++"
+if [[ ! -d "/sys/firmware/efi" ]]; then
+    grub-install --boot-directory=/mnt/boot "${DISK}"
+fi
 
 # Change into the new system root
 echo "++++++++++ Start chroot +++++++++++\n\n"
@@ -159,7 +159,7 @@ echo "DISK is : " ${DISK}
 echo "User is : " ${MYUSERNAME}
 echo "Host is : " ${MACHINE}
 echo "Crypt is: " ${CRYPT}
-echo "UUID is : " {$ENCRYPTED_PARTITION_UUID}
+echo "UUID is : " ${$ENCRYPTED_PARTITION_UUID}
 
 # optional: set the computer clock to the new time
 # hwclock --systohc
@@ -232,10 +232,10 @@ cat /etc/mkinitcpio.conf
 if [[ -d "/sys/firmware/efi" ]]; then
    echo "++++++++++ GRUB EFI Install +++++++++++\n\n"
    grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
-else
-   echo "++++++++++ GRUB BIOS Install +++++++++++\n\n"
-   grub-install --boot-directory=/mnt/boot "${DISK}"
-fi
+#else
+#   echo "++++++++++ GRUB BIOS Install +++++++++++\n\n"
+#   grub-install --boot-directory=/mnt/boot "${DISK}"
+#fi
 
 # Insert it in the grub config and regenerate
 # the GRUB_CMDLINE_LINUX_DEFAULT should now have the argument
