@@ -3,13 +3,13 @@ t1
 # run as sudo bash post_reboot.sh
 
 # Install zram
-echo -ne "################################################"
-echo -ne "############## Install ZRAM  ###################"
-echo -ne "################################################"
+echo -ne "################################################\n"
+echo -ne "############## Install ZRAM  ###################\n"
+echo -ne "################################################\n"
 sudo pacman -Syu zram-generator
 
 # create file at /etc/systemd/zram-generator.conf
-cat > /etc/systemd/zram-generator.conf << EOF
+sudo cat > /etc/systemd/zram-generator.conf << EOF
 [zram0]
 zram-size = ram / 2
 compression-algorithm = zstd
@@ -18,42 +18,47 @@ fs-type = swap
 EOF
 
 # Install yay
-echo -ne "################################################"
-echo -ne "############### Install yay ####################"
-echo -ne "################################################"
+echo -ne "################################################\n"
+echo -ne "############### Install yay ####################\n"
+echo -ne "################################################\n"
 git clone https://aur.archlinux.org/yay-bin.git
 cd yay-bin
 sudo pacman -S base-devel
 makepkg -si
 
 # Install Timeshift
-echo -ne "################################################"
-echo -ne "############ Install timeshift #################"
-echo -ne "################################################"
+echo -ne "################################################\n"
+echo -ne "############ Install timeshift #################\n"
+echo -ne "################################################\n"
 yay -S --noconfirm --needed timeshift timeshift-autosnap
 sudo timeshift --list-devices
 
 # Create a first snapshot
 echo -ne "Create first snapshot"
-timeshift --create --comments "[$(date +%Y-%m-%d)] Initial Snapshot" --tags D
+sudo timeshift --create --comments "[$(date +%Y-%m-%d)] Initial Snapshot" --tags D
 # change ExecStart=/usr/bin/grub-btrfsd --syslog /.snapshots for ExecStart=/usr/bin/grub-btrfsd --syslog -t
 # sudo systemctl edit --full grub-btrfsd
-sed -i 's/ExecStart=\/usr\/bin\/grub-btrfsd --syslog \/.snapshots/ExecStart=\/usr\/bin\/grub-btrfsd --syslog -t/' /etc/systemd/system/grub-btrfsd.service
+sudo sed -i 's/ExecStart=\/usr\/bin\/grub-btrfsd --syslog \/.snapshots/ExecStart=\/usr\/bin\/grub-btrfsd --syslog -t/' /etc/systemd/system/grub-btrfsd.service
 
 # regenerate the grub config so that the snapshot are visible on boot
 echo "Make snapshots visible on next boot"
-grub-mkconfig -o /boot/grub/grub.cfg
+sudo grub-mkconfig -o /boot/grub/grub.cfg
 
 # Download Omarchy
-pacman -S wget
+echo -ne "################################################\n"
+echo -ne "############## Download Omarchy ################\n"
+echo -ne "################################################\n"
+# sudo pacman -S wget
 #wget -qO- https://omarchy.org/install
+sudo pacman --noconfirm --needed -S git
+git clone "https://github.com/basecamp/omarchy.git" ~/.local/share/omarchy >/dev/null
 
 # remove apps that Omarchy installed that we don't want
-pacman -Rcns 1password-beta 1password-cli
+sudo pacman -Rcns 1password-beta 1password-cli
 
-echo -ne "################################################"
-echo -ne "########### Install prefered apps ##############"
-echo -ne "################################################"
+echo -ne "################################################\n"
+echo -ne "########### Install prefered apps ##############\n"
+echo -ne "################################################\n"
 yay -S --noconfirm --needed \
 	pkgfile \
 	pika-backup \
