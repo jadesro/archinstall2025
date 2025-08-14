@@ -150,8 +150,8 @@ if [[ ! -d "/sys/firmware/efi" ]]; then
 fi
 
 # Change into the new system root
-echo "++++++++++ Start chroot +++++++++++\n\n"
-arch-chroot /mnt /bin/bash -c "KEYMAP='us' /bin/bash" <<EOF
+echo "\n\n++++++++++ Start chroot +++++++++++\n\n"
+#arch-chroot /mnt /bin/bash -c "KEYMAP='us' /bin/bash" <<EOF
 
 
 echo "Arch chroot started"
@@ -234,8 +234,8 @@ if [[ -d "/sys/firmware/efi" ]]; then
    grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 #else
 #   echo "++++++++++ GRUB BIOS Install +++++++++++\n\n"
-#   grub-install --boot-directory=/mnt/boot "${DISK}"
-#fi
+#  grub-install --boot-directory=/mnt/boot "${DISK}"
+fi
 
 # Insert it in the grub config and regenerate
 # the GRUB_CMDLINE_LINUX_DEFAULT should now have the argument
