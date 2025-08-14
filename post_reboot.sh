@@ -1,3 +1,4 @@
+t1
 # Stuff to do after the first boot into the installed system
 # run as sudo bash post_reboot.sh
 
