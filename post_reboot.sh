@@ -47,5 +47,4 @@ yay -S --noconfirm --needed \
  git clone https://github.com/vinceliuice/grub2-themes.git
  cd grub2-themes
  # this theme installer will update grub and will also intall the grub snapshot view as per above
- s1Kermit1
- udo ./install.sh -b -t tela
+ sudo ./install.sh -b -t tela
