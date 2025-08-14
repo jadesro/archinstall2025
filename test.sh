@@ -159,7 +159,7 @@ echo "DISK is : " ${DISK}
 echo "User is : " ${MYUSERNAME}
 echo "Host is : " ${MACHINE}
 echo "Crypt is: " ${CRYPT}
-echo "UUID is : " ${$ENCRYPTED_PARTITION_UUID}
+echo "UUID is : " ${ENCRYPTED_PARTITION_UUID}
 
 # optional: set the computer clock to the new time
 # hwclock --systohc
