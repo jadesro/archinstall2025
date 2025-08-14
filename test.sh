@@ -33,14 +33,20 @@ read "?Machine name: " machine
 export MACHINE=$machine
 
 echo "Pick which disk to install to:"
+echo "lsblk:"
+lsblk
+echo "Possible disks:"
 lsblk -n --output TYPE,KNAME,SIZE | awk '$1=="disk"{print "/dev/"$2" | "$3}'
+echo -ne "\n"
 read "?Disk" target_disk
 export DISK=$target_disk
 
 lsblk
-#export MYUSERNAME="jacques"
-#export PASSWORD="TestTest"
-#export MACHINE="omar"
+
+echo "++++++++++ Selected Options +++++++++++\n\n"
+echo "DISK is : " ${DISK}
+echo "User is : " ${MYUSERNAME}
+echo "Host is : " ${MACHINE}
 
 # it is important to setup the time correctly because pacman/pacstrap need
 # a correct time stamp to create the keystore
@@ -90,6 +96,10 @@ echo -n "$PASSWORD" | cryptsetup luksOpen ${CRYPT} main -
 # note here we reuse the main "name" from the luksOpen statement
 mkfs.btrfs -f -L ROOT /dev/mapper/main
 
+echo "++++++++++ Disk Prep completed +++++++++++\n\n"
+lsblk
+
+
 # mount the paritiions
 mount /dev/mapper/main /mnt
 btrfs subvolume create /mnt/@
@@ -115,38 +125,39 @@ mkfs.fat -F32 -n "EFI" ${DISK}2
 mkdir /mnt/boot
 mount ${DISK}2 /mnt/boot
 
+echo "++++++++++ Encrypted partition UUID +++++++++++\n\n"
+# Remember the UUID of the root partition:
+# blkid -s UUID -o value "${CRYPT}"
+export ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
+echo $ENCRYPTED_PARTITION_UUID
+
+echo "++++++++++ All disks/partitions mounted and ready for chroot +++++++++++\n\n"
+cat /proc/mounts
+
+echo "++++++++++ Install base package +++++++++++\n\n"
 # Install the base packages
-# there is a difference between BIOS and EFI mode
-if [[ ! -d "/sys/firmware/efi" ]]; then
-    # pacstrap -K /mnt base base-devel linux-lts linux-firmware --noconfirm --needed
-    pacstrap /mnt base
-else
-    # pacstrap -K /mnt base base-devel linux-lts linux-firmware efibootmgr --noconfirm --needed
-    pacstrap /mnt base 
-fi
+pacstrap /mnt base
 
 # Generate the filesystem table
 genfstab -U -p /mnt >> /mnt/etc/fstab
 # check it
+echo "++++++++++ fstab created +++++++++++\n\n"
 cat /mnt/etc/fstab
 
-# Remember the UUID of the root partition:
-# blkid -s UUID -o value "${CRYPT}"
-export ENCRYPTED_PARTITION_UUID=$(blkid -s UUID -o value "${CRYPT}")
- 
 
 #if [[ ! -d "/sys/firmware/efi" ]]; then
 #    grub-install --boot-directory=/mnt/boot "${DISK}"
 #fi
 
 # Change into the new system root
+echo "++++++++++ Start chroot +++++++++++\n\n"
 arch-chroot /mnt /bin/bash -c "KEYMAP='us' /bin/bash" <<EOF
 
 
-echo "################################"
 echo "Arch chroot started"
 echo "DISK is : " ${DISK}
 echo "User is : " ${MYUSERNAME}
+echo "Host is : " ${MACHINE}
 echo "Crypt is: " ${CRYPT}
 echo "UUID is : " {$ENCRYPTED_PARTITION_UUID}
 
@@ -181,7 +192,6 @@ chmod 0440 /etc/sudoers.d/$MYUSERNAME
 echo "########################################################################"
 cat /etc/passwd
 echo "########################################################################"
-sleep 1
 
 
 # Setup reflector so we can optimise downloads and installation
@@ -190,6 +200,7 @@ pacman --noconfirm --needed -S reflector rsync
 # reflector --country US --protocol http,https,rsync --download-timeout 2 -a 12 --sort rate --save /etc/pacman.d/mirrorlist
 # reflector --country Canada --ipv4 --age 12 --download-timeout=3 --threads 3 --fastest 10 --sort rate --save /etc/pacman.d/mirrorlist
 reflector --country Canada --ipv4 --age 48 --download-timeout=3 --threads 3 --fastest 10 --score 5 --sort rate --save /etc/pacman.d/mirrorlist
+cat /etc/pacman.d/mirrorlist
 
 # install the packages needed for the grub installation - most of the app/packages will be installed later by the Omarchy script
 
@@ -197,6 +208,7 @@ pacman --noconfirm -Syu base-devel linux linux-headers linux-firmware btrfs-prog
 
 # Install efibootmgr if EFI configuration
 if [[ -d "/sys/firmware/efi" ]]; then
+   echo "++++++++++ EFI Boot Manager +++++++++++\n\n"
    pacman --noconfirm -S efibootmgr
 fi
 
@@ -213,11 +225,15 @@ pacman --noconfirm -S man-db man-pages bluez bluez-utils pipewire pipewire-pulse
 sed -i 's/filesystems fsck/encrypt filesystems fsck/g' /etc/mkinitcpio.conf
 sed -i 's/MODULES=()/MODULES=(btrfs atkbd)/g' /etc/mkinitcpio.conf
 mkinitcpio -p linux
+echo "++++++++++ mkinitcpio.conf +++++++++++\n\n"
+cat /etc/mkinitcpio.conf
 
 # Install grub 
 if [[ -d "/sys/firmware/efi" ]]; then
+   echo "++++++++++ GRUB EFI Install +++++++++++\n\n"
    grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 else
+   echo "++++++++++ GRUB BIOS Install +++++++++++\n\n"
    grub-install --boot-directory=/mnt/boot "${DISK}"
 fi
 
@@ -230,12 +246,13 @@ fi
 #sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet splash cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main root=/dev/mapper/main%g" /etc/default/grub
 sed -i "s%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet%GRUB_CMDLINE_LINUX_DEFAULT=\"loglevel=3 quiet cryptdevice=UUID=${ENCRYPTED_PARTITION_UUID}:main%g" /etc/default/grub
 grep GRUB_CMDLINE_LINUX_DEFAULT /etc/default/grub
-sleep 10
 #  mkinitcpio -p linux
 # if we get an error (can't write to /boot), we need to remount boot as read/write and rerun the command
 #mount -n -o remount,rw /boot
 #mkinitcpio -p linux
 grub-mkconfig -o /boot/grub/grub.cfg
+echo "++++++++++ GRUB mkconfig  +++++++++++\n\n"
+cat /boot/grub/grub.cfg
 
 ## Install grub if EFI configuration
 #if [[ -d "/sys/firmware/efi" ]]; then
