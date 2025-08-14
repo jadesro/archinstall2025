@@ -1,3 +1,6 @@
+# Stuff to do after the first boot into the installed system
+# run as sudo bash post_reboot.sh
+
 # Install zram
 echo -ne "################################################"
 echo -ne "############## Install ZRAM  ###################"
@@ -31,21 +34,21 @@ sudo timeshift --list-devices
 
 # Create a first snapshot
 echo -ne "Create first snapshot"
-sudo timeshift --create --comments "[$(date +%Y-%m-%d)] Initial Snapshot" --tags D
+timeshift --create --comments "[$(date +%Y-%m-%d)] Initial Snapshot" --tags D
 # change ExecStart=/usr/bin/grub-btrfsd --syslog /.snapshots for ExecStart=/usr/bin/grub-btrfsd --syslog -t
 # sudo systemctl edit --full grub-btrfsd
 sed -i 's/ExecStart=\/usr\/bin\/grub-btrfsd --syslog \/.snapshots/ExecStart=\/usr\/bin\/grub-btrfsd --syslog -t/' /etc/systemd/system/grub-btrfsd.service
 
 # regenerate the grub config so that the snapshot are visible on boot
 echo "Make snapshots visible on next boot"
-sudo grub-mkconfig -o /boot/grub/grub.cfg
+grub-mkconfig -o /boot/grub/grub.cfg
 
 # Download Omarchy
-sudo pacman -S wget
-wget -qO- https://omarchy.org/install
+pacman -S wget
+#wget -qO- https://omarchy.org/install
 
 # remove apps that Omarchy installed that we don't want
-sudo pacman -Rcns 1password-beta 1password-cli
+pacman -Rcns 1password-beta 1password-cli
 
 echo -ne "################################################"
 echo -ne "########### Install prefered apps ##############"
