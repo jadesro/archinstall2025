@@ -195,8 +195,8 @@ echo "########################################################################"
 
 
 # Setup reflector so we can optimise downloads and installation
-pacman -Syu
-pacman --noconfirm --needed -S reflector rsync
+# pacman -Syu
+pacman --noconfirm --needed -Syu reflector rsync
 # reflector --country US --protocol http,https,rsync --download-timeout 2 -a 12 --sort rate --save /etc/pacman.d/mirrorlist
 # reflector --country Canada --ipv4 --age 12 --download-timeout=3 --threads 3 --fastest 10 --sort rate --save /etc/pacman.d/mirrorlist
 reflector --country Canada --ipv4 --age 48 --download-timeout=3 --threads 3 --fastest 10 --score 5 --sort rate --save /etc/pacman.d/mirrorlist
