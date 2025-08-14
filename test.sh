@@ -151,7 +151,7 @@ fi
 
 # Change into the new system root
 echo "\n\n++++++++++ Start chroot +++++++++++\n\n"
-#arch-chroot /mnt /bin/bash -c "KEYMAP='us' /bin/bash" <<EOF
+arch-chroot /mnt /bin/bash -c "KEYMAP='us' /bin/bash" <<EOF
 
 
 echo "Arch chroot started"
